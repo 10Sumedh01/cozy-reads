@@ -152,7 +152,7 @@ class UserBookModel extends Model
                 ->join('books b', 'b.id = ub.book_id')
                 ->where('ub.user_id', $userId)
                 ->where('ub.status', 'finished')
-                ->whereNotNull('b.genre')
+                ->where('b.genre IS NOT NULL')
                 ->groupBy('b.genre')
                 ->orderBy('cnt', 'DESC')
                 ->limit(1)
