@@ -1,0 +1,10 @@
+php spark shield:user create        # create a new user
+php spark shield:user addgroup      # assign a group to user
+php spark shield:user removegroup   # remove group from user
+php spark shield:user activate      # activate a user account
+php spark shield:user deactivate    # deactivate a user account
+php spark shield:user changename    # change username
+php spark shield:user changeemail   # change email
+php spark shield:user delete        # delete a user
+php spark shield:user password      # reset a user's password
+php spark shield:user list          # list all users
