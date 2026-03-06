@@ -11,7 +11,8 @@ class LoginController extends ShieldLogin
     public function loginView(): RedirectResponse | string
     {
         if (auth()->loggedIn()) {
-            return redirect()->to('/dashboard');
+            // return redirect()->to('/dashboard');
+            return redirect()->to('/');
         }
 
         return view('auth/login', [
