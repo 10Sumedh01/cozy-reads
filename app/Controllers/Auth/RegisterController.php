@@ -1,17 +1,20 @@
 <?php
-// app/Controllers/Auth/RegisterController.php
+
 namespace App\Controllers\Auth;
 
 use CodeIgniter\Shield\Controllers\RegisterController as ShieldRegister;
-use \CodeIgniter\HTTP\RedirectResponse as RedirectResponse;
-use CodeIgniter\Shield\Authentication\Authenticators\Session;
+use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\Shield\Models\UserModel;
 use CodeIgniter\Shield\Entities\User;
 
+
 class RegisterController extends ShieldRegister
 {
-    // Show your custom register view
-    public function registerView():RedirectResponse | string
+    // ─────────────────────────────────────────────────────
+    //  Show register view
+    //  No changes needed here — this was already correct
+    // ─────────────────────────────────────────────────────
+    public function registerView(): RedirectResponse|string
     {
         if (auth()->loggedIn()) {
             return redirect()->to('/dashboard');
@@ -22,10 +25,12 @@ class RegisterController extends ShieldRegister
         ]);
     }
 
-    // Handle registration form submission
+    // ─────────────────────────────────────────────────────
+    //  Handle registration form submission
+    // ─────────────────────────────────────────────────────
     public function registerAction(): RedirectResponse
     {
-        // Validation rules (add your custom fields here)
+        // Validation rules
         $rules = [
             'username'         => 'required|min_length[3]|max_length[30]|is_unique[users.username]',
             'email'            => 'required|valid_email|is_unique[auth_identities.secret]',
@@ -41,45 +46,49 @@ class RegisterController extends ShieldRegister
                 ->with('errors', $this->validator->getErrors());
         }
 
-        // Create the user via Shield
-        $users = new UserModel();
+        $profilePic = $this->uploadProfilePic();
 
         $user = new User([
-            'username' => $this->request->getPost('username'),
-            'email'    => $this->request->getPost('email'),
-            'password' => $this->request->getPost('password'),
+            'username'    => $this->request->getPost('username'),
+            'email'       => $this->request->getPost('email'),
+            'password'    => $this->request->getPost('password'),
+            'mobile'      => $this->request->getPost('mobile'),
+            'gender'      => $this->request->getPost('gender'),
+            'profile_pic' => $profilePic,
         ]);
 
+        // ── Save via Shield's UserModel ──
+        $users = new UserModel();
         $users->save($user);
-        $userId = $users->getInsertID();
 
-        // Save your custom fields in user_profiles table
-        $db = \Config\Database::connect();
-        $db->table('user_profiles')->insert([
-            'user_id'    => $userId,
-            'mobile'     => $this->request->getPost('mobile'),
-            'gender'     => $this->request->getPost('gender'),
-            'profile_pic'=> $this->uploadProfilePic(), // helper method below
-            'created_at' => date('Y-m-d H:i:s'),
-        ]);
+        $userId      = $users->getInsertID();
+        $savedUser   = $users->findById($userId);
+        $savedUser->addGroup('user');
 
-        // Assign default group
-        $user = $users->findById($userId);
-        $user->addGroup('user');
+        auth()->login($savedUser);
 
-        // Log them in automatically after register
-        auth()->login($user);
-
-        return redirect()->to('/dashboard')->with('message', 'Welcome to Cozy Reads! 📚');
+        return redirect()->to('/dashboard')
+            ->with('message', 'Welcome to Cozy Reads! 📚');
     }
 
-    // Handle profile pic upload
+    // ─────────────────────────────────────────────────────
+    //  Handle profile picture upload
+    //  Returns filename string to store in DB
+    // ─────────────────────────────────────────────────────
     private function uploadProfilePic(): string
     {
         $file = $this->request->getFile('profile_pic');
 
-        if (! $file || ! $file->isValid()) {
-            return 'default.png'; // fallback avatar
+        if (! $file || ! $file->isValid() || $file->hasMoved()) {
+            return 'default.png';
+        }
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        if (! in_array($file->getMimeType(), $allowedMimes)) {
+            return 'default.png';
+        }
+
+        if ($file->getSize() > 2 * 1024 * 1024) {
+            return 'default.png';
         }
 
         $newName = $file->getRandomName();
